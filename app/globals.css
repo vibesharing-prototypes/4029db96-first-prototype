@@ -21,3 +21,13 @@ body {
 * {
   box-sizing: border-box;
 }
+
+/* Hide scrollbar in prototype phone UI */
+.phone-scroll {
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.phone-scroll::-webkit-scrollbar {
+  display: none;
+}

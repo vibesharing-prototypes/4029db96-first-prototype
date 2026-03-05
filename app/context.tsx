@@ -82,8 +82,6 @@ type AppContextValue = AppState & {
   setLimitingFeatures: (patch: Partial<LimitingFeatures>) => void;
   setScheduleRules: (rules: ScheduleRule[]) => void;
   finishOnboarding: (opts: { dailyGoalHours: number; trackedApps: TrackedApp[] }) => void;
-  /** For demo: set streak (in real app would be computed from history) */
-  setStreakUnderLimitDays: (days: number) => void;
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -199,13 +197,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [state, persist]
   );
 
-  const setStreakUnderLimitDays = useCallback(
-    (days: number) => {
-      persist({ ...state, streakUnderLimitDays: days });
-    },
-    [state, persist]
-  );
-
   return (
     <AppContext.Provider
       value={{
@@ -216,7 +207,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setLimitingFeatures,
         setScheduleRules,
         finishOnboarding,
-        setStreakUnderLimitDays,
       }}
     >
       {children}

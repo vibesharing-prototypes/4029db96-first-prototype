@@ -288,7 +288,7 @@ function OnboardingFlow({ onFinish }: { onFinish: (opts: { dailyGoalHours: numbe
           </div>
 
           {/* App list */}
-          <div className="flex-1 overflow-y-auto px-3 mt-2">
+          <div className="flex-1 overflow-y-auto phone-scroll px-3 mt-2">
             {apps.map((app) => (
               <button
                 key={app.name}
@@ -515,7 +515,6 @@ function HomeDashboard({ onNav }: { onNav: (s: Screen) => void }) {
     todayScreenMinutes,
     streakUnderLimitDays,
     setAppBlocked,
-    setStreakUnderLimitDays,
   } = useApp();
   const [suggestionDismissed, setSuggestionDismissed] = useState(false);
   const [selectedAppStats, setSelectedAppStats] = useState<TrackedApp | null>(null);
@@ -529,8 +528,11 @@ function HomeDashboard({ onNav }: { onNav: (s: Screen) => void }) {
     { name: "YouTube", iconKey: "youtube", iconBg: "#DC2626", category: "video", weeklyHours: 7.2, risk: "high" as const, blocked: false, todayMinutes: 58, dailyLimitMinutes: 0 },
   ];
 
+  const usedLabel = `${Math.floor(todayScreenMinutes / 60)}h ${todayScreenMinutes % 60}m`;
+  const limitLabel = `${userDailyGoalHours}h 00m`;
+
   return (
-    <div className="flex flex-col flex-1 overflow-y-auto" style={{ background: "#0F172A" }}>
+    <div className="flex flex-col flex-1 overflow-y-auto phone-scroll" style={{ background: "#0F172A" }}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 shrink-0" style={{ height: 60 }}>
         <div className="flex flex-col gap-0.5">
@@ -546,7 +548,7 @@ function HomeDashboard({ onNav }: { onNav: (s: Screen) => void }) {
         </button>
       </div>
 
-      {/* Usage Card — goal from onboarding */}
+      {/* Usage Card — used vs available limit */}
       <div className="mx-3 rounded-xl p-3.5 flex flex-col gap-2" style={{ background: "#1E293B" }}>
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-semibold" style={{ color: "#94A3B8" }}>Today&apos;s Screen Time</span>
@@ -554,15 +556,18 @@ function HomeDashboard({ onNav }: { onNav: (s: Screen) => void }) {
             <span className="text-[9px] font-bold text-white px-2 py-0.5 rounded-full" style={{ background: "#DC2626" }}>Over limit</span>
           )}
         </div>
-        <span className="text-3xl font-bold" style={{ color: "#F1F5F9" }}>
-          {Math.floor(todayScreenMinutes / 60)}h {todayScreenMinutes % 60}m
-        </span>
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <span className="text-3xl font-bold" style={{ color: "#F1F5F9" }}>{usedLabel}</span>
+          <span className="text-sm" style={{ color: "#64748B" }}>used of</span>
+          <span className="text-xl font-semibold" style={{ color: "#94A3B8" }}>{limitLabel}</span>
+          <span className="text-sm" style={{ color: "#64748B" }}>available</span>
+        </div>
         <div className="rounded-full h-1.5 w-full" style={{ background: "#334155" }}>
           <div className="rounded-full h-1.5 transition-all" style={{ width: `${pct}%`, background: overLimit ? "#DC2626" : pct > 80 ? "#F59E0B" : "#34D399" }} />
         </div>
         <div className="flex items-center justify-between">
           <span className="text-[9px]" style={{ color: "#64748B" }}>0h</span>
-          <span className="text-[9px]" style={{ color: "#64748B" }}>Goal: {userDailyGoalHours}h 00m</span>
+          <span className="text-[9px]" style={{ color: "#64748B" }}>Goal: {limitLabel}</span>
           <span className="text-[9px]" style={{ color: "#64748B" }}>{userDailyGoalHours + 2}h max</span>
         </div>
       </div>
@@ -629,10 +634,11 @@ function HomeDashboard({ onNav }: { onNav: (s: Screen) => void }) {
             </div>
             <button
               onClick={(e) => { e.stopPropagation(); setAppBlocked(app.name, !app.blocked); }}
-              className="flex items-center gap-1 text-[10px] font-bold rounded-full transition-all active:scale-90 shrink-0"
-              style={{ background: app.blocked ? "#7F1D1D" : "#14532D", color: app.blocked ? "#EF4444" : "#34D399", border: "none", cursor: "pointer", minWidth: 44, minHeight: 28, padding: "3px 8px" }}
+              className="flex items-center gap-1 text-[9px] rounded-md transition-opacity active:opacity-70 shrink-0"
+              style={{ color: "#64748B", background: "none", border: "1px solid #334155", cursor: "pointer", padding: "4px 8px" }}
             >
-              {app.blocked ? <><Lock size={9} /> Blocked</> : <><Unlock size={9} /> Enabled</>}
+              {app.blocked ? <Lock size={8} style={{ color: "#94A3B8" }} /> : <Unlock size={8} style={{ color: "#94A3B8" }} />}
+              <span style={{ color: "#94A3B8" }}>{app.blocked ? "Blocked" : "On"}</span>
             </button>
           </button>
         );
@@ -748,7 +754,7 @@ function UsageAnalytics({ onNav }: { onNav: (s: Screen) => void }) {
   const data = period === "week" ? barData : monthData;
 
   return (
-    <div className="flex flex-col flex-1 overflow-y-auto" style={{ background: "#0F172A" }}>
+    <div className="flex flex-col flex-1 overflow-y-auto phone-scroll" style={{ background: "#0F172A" }}>
       <div className="flex items-center justify-between px-4 shrink-0" style={{ height: 50 }}>
         <span className="text-base font-bold" style={{ color: "#F1F5F9" }}>Usage Analytics</span>
         <div className="flex rounded-md overflow-hidden" style={{ border: "1px solid #334155" }}>
@@ -1027,7 +1033,7 @@ function MentalTraining() {
         </div>
       </div>
 
-      <div className="flex flex-col flex-1 overflow-y-auto">
+      <div className="flex flex-col flex-1 overflow-y-auto phone-scroll">
         <div className="mx-3 flex flex-col gap-1.5 px-2.5 py-2 rounded-lg" style={{ background: "#1E293B", border: "1px solid #7C3AED33" }}>
           <div className="flex items-center gap-1.5">
             <Sparkles size={11} style={{ color: "#A78BFA" }} />
@@ -1155,7 +1161,7 @@ function MentalTraining() {
    ═══════════════════════════════════════════════════ */
 function RewardsScreen({ onNav }: { onNav: (s: Screen) => void }) {
   return (
-    <div className="flex flex-col flex-1 overflow-y-auto" style={{ background: "#0F172A" }}>
+    <div className="flex flex-col flex-1 overflow-y-auto phone-scroll" style={{ background: "#0F172A" }}>
       <div className="flex items-center justify-between px-4 shrink-0" style={{ height: 50 }}>
         <span className="text-base font-bold" style={{ color: "#F1F5F9" }}>Rewards</span>
         <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full" style={{ background: "#1E293B" }}>
@@ -1224,7 +1230,7 @@ function RewardsScreen({ onNav }: { onNav: (s: Screen) => void }) {
    PROFILE — awards/badges moved here
    ═══════════════════════════════════════════════════ */
 function ProfileScreen({ onNav }: { onNav: (s: Screen) => void }) {
-  const { userName, streakUnderLimitDays, setStreakUnderLimitDays } = useApp();
+  const { userName, streakUnderLimitDays } = useApp();
   const [claimed, setClaimed] = useState<string[]>([]);
 
   const badges = [
@@ -1235,7 +1241,7 @@ function ProfileScreen({ onNav }: { onNav: (s: Screen) => void }) {
   ];
 
   return (
-    <div className="flex flex-col flex-1 overflow-y-auto" style={{ background: "#0F172A" }}>
+    <div className="flex flex-col flex-1 overflow-y-auto phone-scroll" style={{ background: "#0F172A" }}>
       <div className="flex items-center justify-between px-4 shrink-0" style={{ height: 50 }}>
         <span className="text-base font-bold" style={{ color: "#F1F5F9" }}>Profile</span>
         <button
@@ -1260,18 +1266,7 @@ function ProfileScreen({ onNav }: { onNav: (s: Screen) => void }) {
           <span className="text-[10px]" style={{ color: "#64748B" }}>Days under limit streak</span>
           <span className="text-sm font-bold" style={{ color: "#F472B6" }}>{streakUnderLimitDays}</span>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setStreakUnderLimitDays(Math.max(0, streakUnderLimitDays - 1))}
-            className="flex-1 py-1.5 rounded-lg text-[10px] font-semibold"
-            style={{ background: "#334155", color: "#F1F5F9", border: "none", cursor: "pointer" }}
-          >−</button>
-          <button
-            onClick={() => setStreakUnderLimitDays(streakUnderLimitDays + 1)}
-            className="flex-1 py-1.5 rounded-lg text-[10px] font-semibold"
-            style={{ background: "#334155", color: "#F1F5F9", border: "none", cursor: "pointer" }}
-          >+</button>
-        </div>
+        <span className="text-[9px]" style={{ color: "#475569" }}>Tracked automatically</span>
       </div>
       <div className="px-4 mt-3 mb-1 shrink-0">
         <span className="text-xs font-bold" style={{ color: "#F1F5F9" }}>Awards</span>
@@ -1326,7 +1321,7 @@ function SettingsScreen({ onNav }: { onNav: (s: Screen) => void }) {
   const availableToAdd = DETECTED_APPS.filter((a) => !trackedApps.some((t) => t.name === a.name));
 
   return (
-    <div className="flex flex-col flex-1 overflow-y-auto" style={{ background: "#0F172A" }}>
+    <div className="flex flex-col flex-1 overflow-y-auto phone-scroll" style={{ background: "#0F172A" }}>
       <div className="flex items-center justify-between px-4 shrink-0" style={{ height: 50 }}>
         <button onClick={() => onNav("home")} className="text-[11px] font-semibold" style={{ color: "#7C3AED", background: "none", border: "none", cursor: "pointer" }}>← Back</button>
         <span className="text-base font-bold" style={{ color: "#F1F5F9" }}>Settings</span>
@@ -1414,7 +1409,7 @@ function SettingsScreen({ onNav }: { onNav: (s: Screen) => void }) {
         </button>
       </div>
       {showAddApps ? (
-        <div className="mx-3 rounded-xl p-2 space-y-1 max-h-48 overflow-y-auto" style={{ background: "#1E293B" }}>
+        <div className="mx-3 rounded-xl p-2 space-y-1 max-h-48 overflow-y-auto phone-scroll" style={{ background: "#1E293B" }}>
           {availableToAdd.length === 0 ? (
             <div className="text-[10px] py-2" style={{ color: "#64748B" }}>All available apps are already added.</div>
           ) : (
