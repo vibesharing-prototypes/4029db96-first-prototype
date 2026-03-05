@@ -23,7 +23,6 @@ import {
   Pause,
   X,
   ChevronRight,
-  Pencil,
   Lock,
   Unlock,
   TrendingDown,
@@ -40,10 +39,28 @@ import {
   Globe,
   Gamepad2,
   AlertTriangle,
+  Settings,
+  User,
+  Plus,
 } from "lucide-react";
+import { AppProvider, useApp, type TrackedApp } from "./context";
 
 /* ─── types ───────────────────────────────────────── */
-type Screen = "home" | "stats" | "train" | "rewards";
+type Screen = "home" | "stats" | "train" | "rewards" | "profile" | "settings";
+
+const ICON_MAP: Record<string, React.ElementType> = {
+  twitter: Twitter,
+  youtube: Youtube,
+  instagram: Instagram,
+  tiktok: Music,
+  reddit: MessageCircle,
+  snapchat: Camera,
+  amazon: ShoppingBag,
+  gmail: Mail,
+  safari: Globe,
+  games: Gamepad2,
+  globe: Globe,
+};
 
 /* ─── Animated progress helper ────────────────────── */
 function useAnimatedValue(target: number, duration = 600) {
@@ -70,6 +87,7 @@ function useAnimatedValue(target: number, duration = 600) {
 interface DetectedApp {
   name: string;
   icon: React.ElementType;
+  iconKey: string;
   iconBg: string;
   category: "social" | "video" | "messaging" | "games" | "shopping" | "productivity" | "other";
   weeklyHours: number;
@@ -78,21 +96,21 @@ interface DetectedApp {
 }
 
 const DETECTED_APPS: DetectedApp[] = [
-  { name: "Twitter / X", icon: Twitter, iconBg: "#1D4ED8", category: "social", weeklyHours: 9.8, risk: "high", selected: true },
-  { name: "YouTube", icon: Youtube, iconBg: "#DC2626", category: "video", weeklyHours: 7.2, risk: "high", selected: true },
-  { name: "Instagram", icon: Instagram, iconBg: "#C026D3", category: "social", weeklyHours: 5.4, risk: "high", selected: true },
-  { name: "TikTok", icon: Music, iconBg: "#18181B", category: "video", weeklyHours: 4.1, risk: "high", selected: true },
-  { name: "Reddit", icon: MessageCircle, iconBg: "#EA580C", category: "social", weeklyHours: 3.3, risk: "medium", selected: true },
-  { name: "Snapchat", icon: Camera, iconBg: "#FACC15", category: "social", weeklyHours: 1.8, risk: "medium", selected: false },
-  { name: "Amazon", icon: ShoppingBag, iconBg: "#F59E0B", category: "shopping", weeklyHours: 1.2, risk: "low", selected: false },
-  { name: "Gmail", icon: Mail, iconBg: "#DC2626", category: "productivity", weeklyHours: 0.8, risk: "low", selected: false },
-  { name: "Safari", icon: Globe, iconBg: "#2563EB", category: "other", weeklyHours: 2.5, risk: "medium", selected: false },
-  { name: "Games", icon: Gamepad2, iconBg: "#059669", category: "games", weeklyHours: 2.0, risk: "medium", selected: false },
+  { name: "Twitter / X", icon: Twitter, iconKey: "twitter", iconBg: "#1D4ED8", category: "social", weeklyHours: 9.8, risk: "high", selected: true },
+  { name: "YouTube", icon: Youtube, iconKey: "youtube", iconBg: "#DC2626", category: "video", weeklyHours: 7.2, risk: "high", selected: true },
+  { name: "Instagram", icon: Instagram, iconKey: "instagram", iconBg: "#C026D3", category: "social", weeklyHours: 5.4, risk: "high", selected: true },
+  { name: "TikTok", icon: Music, iconKey: "tiktok", iconBg: "#18181B", category: "video", weeklyHours: 4.1, risk: "high", selected: true },
+  { name: "Reddit", icon: MessageCircle, iconKey: "reddit", iconBg: "#EA580C", category: "social", weeklyHours: 3.3, risk: "medium", selected: true },
+  { name: "Snapchat", icon: Camera, iconKey: "snapchat", iconBg: "#FACC15", category: "social", weeklyHours: 1.8, risk: "medium", selected: false },
+  { name: "Amazon", icon: ShoppingBag, iconKey: "amazon", iconBg: "#F59E0B", category: "shopping", weeklyHours: 1.2, risk: "low", selected: false },
+  { name: "Gmail", icon: Mail, iconKey: "gmail", iconBg: "#DC2626", category: "productivity", weeklyHours: 0.8, risk: "low", selected: false },
+  { name: "Safari", icon: Globe, iconKey: "safari", iconBg: "#2563EB", category: "other", weeklyHours: 2.5, risk: "medium", selected: false },
+  { name: "Games", icon: Gamepad2, iconKey: "games", iconBg: "#059669", category: "games", weeklyHours: 2.0, risk: "medium", selected: false },
 ];
 
 type OnboardingStep = "welcome" | "scanning" | "results" | "goal" | "complete";
 
-function OnboardingFlow({ onFinish }: { onFinish: () => void }) {
+function OnboardingFlow({ onFinish }: { onFinish: (opts: { dailyGoalHours: number; selectedApps: DetectedApp[] }) => void }) {
   const [step, setStep] = useState<OnboardingStep>("welcome");
   const [scanProgress, setScanProgress] = useState(0);
   const [apps, setApps] = useState(DETECTED_APPS);
@@ -166,7 +184,7 @@ function OnboardingFlow({ onFinish }: { onFinish: () => void }) {
             Scan My Apps
           </button>
           <button
-            onClick={onFinish}
+            onClick={() => onFinish({ dailyGoalHours: 3, selectedApps: apps.filter((a) => a.selected) })}
             className="text-[11px] mt-0.5 transition-opacity active:opacity-60"
             style={{ color: "#64748B", background: "none", border: "none", cursor: "pointer" }}
           >
@@ -420,7 +438,7 @@ function OnboardingFlow({ onFinish }: { onFinish: () => void }) {
           </div>
 
           <button
-            onClick={onFinish}
+            onClick={() => onFinish({ dailyGoalHours: dailyGoal, selectedApps: apps.filter((a) => a.selected) })}
             className="w-full rounded-full py-3 text-[12px] font-bold text-white mt-3 transition-all active:scale-95"
             style={{ background: "linear-gradient(135deg, #7C3AED, #4F46E5)", border: "none", cursor: "pointer" }}
           >
@@ -462,7 +480,8 @@ function BottomNav({ active, onNav }: { active: Screen; onNav: (s: Screen) => vo
     { id: "home", icon: Home, label: "Home" },
     { id: "stats", icon: BarChart2, label: "Stats" },
     { id: "train", icon: Brain, label: "Train" },
-    { id: "rewards", icon: Trophy, label: "Rewards" },
+    { id: "rewards", icon: Trophy, label: "Leaderboard" },
+    { id: "profile", icon: User, label: "Profile" },
   ];
   return (
     <div className="flex items-center justify-around px-2 shrink-0" style={{ background: "#1E293B", height: 58, borderTop: "1px solid #334155" }}>
@@ -487,13 +506,28 @@ function BottomNav({ active, onNav }: { active: Screen; onNav: (s: Screen) => vo
 }
 
 /* ═══════════════════════════════════════════════════
-   SCREEN 1: HOME DASHBOARD
+   SCREEN 1: HOME DASHBOARD — consistent block/enable only, no manual usage edit
    ═══════════════════════════════════════════════════ */
 function HomeDashboard({ onNav }: { onNav: (s: Screen) => void }) {
-  const [ytBlocked, setYtBlocked] = useState(true);
-  const [editLimits, setEditLimits] = useState(false);
+  const {
+    trackedApps,
+    userDailyGoalHours,
+    todayScreenMinutes,
+    streakUnderLimitDays,
+    setAppBlocked,
+    setStreakUnderLimitDays,
+  } = useApp();
   const [suggestionDismissed, setSuggestionDismissed] = useState(false);
-  const [twitterLimit, setTwitterLimit] = useState(87);
+  const [selectedAppStats, setSelectedAppStats] = useState<TrackedApp | null>(null);
+
+  const goalMinutes = userDailyGoalHours * 60;
+  const overLimit = todayScreenMinutes > goalMinutes;
+  const pct = Math.min(100, (todayScreenMinutes / goalMinutes) * 100);
+
+  const displayApps = trackedApps.length > 0 ? trackedApps : [
+    { name: "Twitter / X", iconKey: "twitter", iconBg: "#1D4ED8", category: "social", weeklyHours: 9.8, risk: "high" as const, blocked: true, todayMinutes: 82, dailyLimitMinutes: 0 },
+    { name: "YouTube", iconKey: "youtube", iconBg: "#DC2626", category: "video", weeklyHours: 7.2, risk: "high" as const, blocked: false, todayMinutes: 58, dailyLimitMinutes: 0 },
+  ];
 
   return (
     <div className="flex flex-col flex-1 overflow-y-auto" style={{ background: "#0F172A" }}>
@@ -504,7 +538,7 @@ function HomeDashboard({ onNav }: { onNav: (s: Screen) => void }) {
           <span className="text-base font-bold" style={{ color: "#F1F5F9" }}>Jane Smith</span>
         </div>
         <button
-          onClick={() => onNav("rewards")}
+          onClick={() => onNav("profile")}
           className="flex items-center justify-center rounded-full text-xs font-bold text-white transition-transform active:scale-90"
           style={{ width: 36, height: 36, background: "#7C3AED", border: "none", cursor: "pointer" }}
         >
@@ -512,108 +546,109 @@ function HomeDashboard({ onNav }: { onNav: (s: Screen) => void }) {
         </button>
       </div>
 
-      {/* Usage Card */}
+      {/* Usage Card — goal from onboarding */}
       <div className="mx-3 rounded-xl p-3.5 flex flex-col gap-2" style={{ background: "#1E293B" }}>
         <div className="flex items-center justify-between">
-          <span className="text-[11px] font-semibold" style={{ color: "#94A3B8" }}>Today's Screen Time</span>
-          <span className="text-[9px] font-bold text-white px-2 py-0.5 rounded-full" style={{ background: "#DC2626" }}>Over limit</span>
+          <span className="text-[11px] font-semibold" style={{ color: "#94A3B8" }}>Today&apos;s Screen Time</span>
+          {overLimit && (
+            <span className="text-[9px] font-bold text-white px-2 py-0.5 rounded-full" style={{ background: "#DC2626" }}>Over limit</span>
+          )}
         </div>
-        <span className="text-3xl font-bold" style={{ color: "#F1F5F9" }}>3h 42m</span>
+        <span className="text-3xl font-bold" style={{ color: "#F1F5F9" }}>
+          {Math.floor(todayScreenMinutes / 60)}h {todayScreenMinutes % 60}m
+        </span>
         <div className="rounded-full h-1.5 w-full" style={{ background: "#334155" }}>
-          <div className="rounded-full h-1.5 transition-all" style={{ width: "74%", background: "#DC2626" }} />
+          <div className="rounded-full h-1.5 transition-all" style={{ width: `${pct}%`, background: overLimit ? "#DC2626" : pct > 80 ? "#F59E0B" : "#34D399" }} />
         </div>
         <div className="flex items-center justify-between">
           <span className="text-[9px]" style={{ color: "#64748B" }}>0h</span>
-          <span className="text-[9px]" style={{ color: "#64748B" }}>Goal: 3h 00m</span>
-          <span className="text-[9px]" style={{ color: "#64748B" }}>5h max</span>
+          <span className="text-[9px]" style={{ color: "#64748B" }}>Goal: {userDailyGoalHours}h 00m</span>
+          <span className="text-[9px]" style={{ color: "#64748B" }}>{userDailyGoalHours + 2}h max</span>
         </div>
       </div>
 
-      {/* Quick Stats */}
+      {/* Quick Stats — streak = days under limit */}
       <div className="flex gap-2 mx-3 mt-2 shrink-0" style={{ height: 72 }}>
-        {[
-          { value: "7", label: "Day Streak", color: "#F472B6", screen: "rewards" as Screen },
-          { value: "42", label: "XP Today", color: "#34D399", screen: "rewards" as Screen },
-          { value: "#4", label: "Leaderboard", color: "#FBBF24", screen: "rewards" as Screen },
-        ].map(({ value, label, color, screen }) => (
-          <button
-            key={label}
-            onClick={() => onNav(screen)}
-            className="flex-1 flex flex-col items-center justify-center gap-1 rounded-xl transition-transform active:scale-95"
-            style={{ background: "#1E293B", border: "none", cursor: "pointer" }}
-          >
-            <span className="text-lg font-bold" style={{ color }}>{value}</span>
-            <span className="text-[9px]" style={{ color: "#64748B" }}>{label}</span>
-          </button>
-        ))}
+        <button
+          onClick={() => onNav("profile")}
+          className="flex-1 flex flex-col items-center justify-center gap-1 rounded-xl transition-transform active:scale-95"
+          style={{ background: "#1E293B", border: "none", cursor: "pointer" }}
+        >
+          <span className="text-lg font-bold" style={{ color: "#F472B6" }}>{streakUnderLimitDays}</span>
+          <span className="text-[9px]" style={{ color: "#64748B" }}>Days under limit</span>
+        </button>
+        <button
+          onClick={() => onNav("rewards")}
+          className="flex-1 flex flex-col items-center justify-center gap-1 rounded-xl transition-transform active:scale-95"
+          style={{ background: "#1E293B", border: "none", cursor: "pointer" }}
+        >
+          <span className="text-lg font-bold" style={{ color: "#34D399" }}>42</span>
+          <span className="text-[9px]" style={{ color: "#64748B" }}>XP Today</span>
+        </button>
+        <button
+          onClick={() => onNav("rewards")}
+          className="flex-1 flex flex-col items-center justify-center gap-1 rounded-xl transition-transform active:scale-95"
+          style={{ background: "#1E293B", border: "none", cursor: "pointer" }}
+        >
+          <span className="text-lg font-bold" style={{ color: "#FBBF24" }}>#4</span>
+          <span className="text-[9px]" style={{ color: "#64748B" }}>Leaderboard</span>
+        </button>
       </div>
 
-      {/* App Limits */}
+      {/* App Limits — all apps: block/enable only, no manual usage edit */}
       <div className="flex items-center justify-between px-4 mt-2 py-1.5 shrink-0">
         <span className="text-xs font-bold" style={{ color: "#F1F5F9" }}>App Limits</span>
         <button
-          onClick={() => setEditLimits(!editLimits)}
+          onClick={() => onNav("settings")}
           className="flex items-center gap-1 text-[11px] transition-opacity active:opacity-60"
           style={{ color: "#7C3AED", background: "none", border: "none", cursor: "pointer", minWidth: 44, minHeight: 32 }}
         >
-          <Pencil size={10} />
-          {editLimits ? "Done" : "Edit"}
+          <Settings size={10} /> Settings
         </button>
       </div>
 
-      {/* Twitter row */}
-      <div className="flex items-center gap-2.5 px-4 shrink-0" style={{ height: 48 }}>
-        <div className="flex items-center justify-center rounded-lg shrink-0" style={{ width: 28, height: 28, background: "#1D4ED8" }}>
-          <Twitter size={14} className="text-white" />
-        </div>
-        <div className="flex flex-col gap-1 flex-1">
-          <span className="text-[11px] font-semibold" style={{ color: "#CBD5E1" }}>Twitter / X</span>
-          <div className="rounded h-1" style={{ background: "#334155" }}>
-            <div className="rounded h-1 transition-all" style={{ width: `${twitterLimit}%`, background: twitterLimit > 80 ? "#F59E0B" : "#34D399" }} />
-          </div>
-        </div>
-        {editLimits ? (
-          <div className="flex items-center gap-1.5">
+      {displayApps.map((app) => {
+        const Icon = ICON_MAP[app.iconKey] ?? Globe;
+        const limitMin = app.dailyLimitMinutes || goalMinutes;
+        const usagePct = limitMin ? Math.min(100, (app.todayMinutes / limitMin) * 100) : 0;
+        return (
+          <button
+            key={app.name}
+            onClick={() => setSelectedAppStats(app)}
+            className="flex items-center gap-2.5 px-4 w-full shrink-0 text-left transition-opacity active:opacity-90"
+            style={{ height: 48, background: "none", border: "none", cursor: "pointer" }}
+          >
+            <div className="flex items-center justify-center rounded-lg shrink-0" style={{ width: 28, height: 28, background: app.iconBg }}>
+              <Icon size={14} className="text-white" />
+            </div>
+            <div className="flex flex-col gap-1 flex-1 min-w-0">
+              <span className="text-[11px] font-semibold truncate" style={{ color: "#CBD5E1" }}>{app.name}</span>
+              <div className="rounded h-1" style={{ background: "#334155" }}>
+                <div className="rounded h-1 transition-all" style={{ width: `${app.blocked ? 100 : usagePct}%`, background: app.blocked ? "#EF4444" : usagePct > 80 ? "#F59E0B" : "#34D399" }} />
+              </div>
+            </div>
             <button
-              onClick={() => setTwitterLimit(Math.max(0, twitterLimit - 10))}
-              className="text-[11px] font-bold rounded transition-all active:scale-90"
-              style={{ width: 32, height: 28, background: "#334155", color: "#F1F5F9", border: "none", cursor: "pointer" }}
+              onClick={(e) => { e.stopPropagation(); setAppBlocked(app.name, !app.blocked); }}
+              className="flex items-center gap-1 text-[10px] font-bold rounded-full transition-all active:scale-90 shrink-0"
+              style={{ background: app.blocked ? "#7F1D1D" : "#14532D", color: app.blocked ? "#EF4444" : "#34D399", border: "none", cursor: "pointer", minWidth: 44, minHeight: 28, padding: "3px 8px" }}
             >
-              −
+              {app.blocked ? <><Lock size={9} /> Blocked</> : <><Unlock size={9} /> Enabled</>}
             </button>
-            <span className="text-[10px] font-bold w-7 text-center" style={{ color: "#F1F5F9" }}>{twitterLimit}%</span>
-            <button
-              onClick={() => setTwitterLimit(Math.min(100, twitterLimit + 10))}
-              className="text-[11px] font-bold rounded transition-all active:scale-90"
-              style={{ width: 32, height: 28, background: "#334155", color: "#F1F5F9", border: "none", cursor: "pointer" }}
-            >
-              +
-            </button>
-          </div>
-        ) : (
-          <span className="text-[11px] font-bold" style={{ color: twitterLimit > 80 ? "#F59E0B" : "#34D399" }}>{twitterLimit}%</span>
-        )}
-      </div>
+          </button>
+        );
+      })}
 
-      {/* YouTube row */}
-      <div className="flex items-center gap-2.5 px-4 shrink-0" style={{ height: 48 }}>
-        <div className="flex items-center justify-center rounded-lg shrink-0" style={{ width: 28, height: 28, background: "#DC2626" }}>
-          <Youtube size={14} className="text-white" />
+      {/* Add more apps */}
+      <button
+        onClick={() => onNav("settings")}
+        className="flex items-center gap-2.5 px-4 py-2.5 mx-3 mt-1 rounded-xl transition-all active:scale-98"
+        style={{ background: "#1E293B", border: "1px dashed #334155", cursor: "pointer" }}
+      >
+        <div className="flex items-center justify-center rounded-lg shrink-0" style={{ width: 28, height: 28, background: "#334155" }}>
+          <Plus size={14} style={{ color: "#94A3B8" }} />
         </div>
-        <div className="flex flex-col gap-1 flex-1">
-          <span className="text-[11px] font-semibold" style={{ color: "#CBD5E1" }}>YouTube</span>
-          <div className="rounded h-1" style={{ background: "#334155" }}>
-            <div className="rounded h-1 transition-all" style={{ width: ytBlocked ? "100%" : "55%", background: ytBlocked ? "#EF4444" : "#34D399" }} />
-          </div>
-        </div>
-        <button
-          onClick={() => setYtBlocked(!ytBlocked)}
-          className="flex items-center gap-1 text-[10px] font-bold rounded-full transition-all active:scale-90"
-          style={{ background: ytBlocked ? "#7F1D1D" : "#14532D", color: ytBlocked ? "#EF4444" : "#34D399", border: "none", cursor: "pointer", minWidth: 44, minHeight: 28, padding: "3px 8px" }}
-        >
-          {ytBlocked ? <><Lock size={9} /> BLOCKED</> : <><Unlock size={9} /> OPEN</>}
-        </button>
-      </div>
+        <span className="text-[11px] font-semibold" style={{ color: "#94A3B8" }}>Add more apps</span>
+      </button>
 
       {/* AI Suggestion */}
       {!suggestionDismissed && (
@@ -639,6 +674,45 @@ function HomeDashboard({ onNav }: { onNav: (s: Screen) => void }) {
           >
             <X size={12} style={{ color: "#94A3B8" }} />
           </button>
+        </div>
+      )}
+
+      {/* Individual app stats modal */}
+      {selectedAppStats && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center px-4" style={{ background: "rgba(15,23,42,0.95)" }}>
+          <div className="w-full max-w-sm rounded-xl p-4" style={{ background: "#1E293B", border: "1px solid #334155" }}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center rounded-lg" style={{ width: 32, height: 32, background: selectedAppStats.iconBg }}>
+                  {(() => { const Icon = ICON_MAP[selectedAppStats.iconKey] ?? Globe; return <Icon size={16} className="text-white" />; })()}
+                </div>
+                <span className="text-sm font-bold" style={{ color: "#F1F5F9" }}>{selectedAppStats.name}</span>
+              </div>
+              <button onClick={() => setSelectedAppStats(null)} style={{ background: "none", border: "none", cursor: "pointer" }}>
+                <X size={18} style={{ color: "#94A3B8" }} />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-center">
+              <div className="rounded-lg p-2" style={{ background: "#0F172A" }}>
+                <span className="text-[10px]" style={{ color: "#64748B" }}>Today</span>
+                <div className="text-sm font-bold" style={{ color: "#F1F5F9" }}>{selectedAppStats.todayMinutes}m</div>
+              </div>
+              <div className="rounded-lg p-2" style={{ background: "#0F172A" }}>
+                <span className="text-[10px]" style={{ color: "#64748B" }}>Weekly avg</span>
+                <div className="text-sm font-bold" style={{ color: "#F1F5F9" }}>{Math.round(selectedAppStats.weeklyHours * 60 / 7)}m</div>
+              </div>
+            </div>
+            <div className="mt-2 text-[10px]" style={{ color: "#94A3B8" }}>
+              Limit: {selectedAppStats.blocked ? "Blocked" : "Enabled"} · Category: {selectedAppStats.category}
+            </div>
+            <button
+              onClick={() => setSelectedAppStats(null)}
+              className="w-full mt-3 py-2 rounded-full text-[11px] font-semibold"
+              style={{ background: "#334155", color: "#F1F5F9", border: "none", cursor: "pointer" }}
+            >
+              Close
+            </button>
+          </div>
         </div>
       )}
 
@@ -785,7 +859,7 @@ function UsageAnalytics({ onNav }: { onNav: (s: Screen) => void }) {
 /* ═══════════════════════════════════════════════════
    SESSION MODAL — added end-confirmation
    ═══════════════════════════════════════════════════ */
-function SessionModal({ title, duration, onClose }: { title: string; duration: number; onClose: () => void }) {
+function SessionModal({ title, duration, onClose, guide }: { title: string; duration: number; onClose: () => void; guide?: string }) {
   const [elapsed, setElapsed] = useState(0);
   const [running, setRunning] = useState(true);
   const [confirmEnd, setConfirmEnd] = useState(false);
@@ -839,7 +913,7 @@ function SessionModal({ title, duration, onClose }: { title: string; duration: n
           </div>
           <div className="text-center">
             <div className="text-sm font-bold" style={{ color: "#F1F5F9" }}>{title}</div>
-            <div className="text-[11px] mt-0.5" style={{ color: "#94A3B8" }}>Focus on your breath</div>
+            <div className="text-[11px] mt-0.5" style={{ color: "#94A3B8" }}>{guide || "Focus on your breath"}</div>
           </div>
 
           <div className="relative flex items-center justify-center" style={{ width: 120, height: 120 }}>
@@ -904,19 +978,36 @@ function SessionModal({ title, duration, onClose }: { title: string; duration: n
 }
 
 /* ═══════════════════════════════════════════════════
-   SCREEN 3: MENTAL TRAINING
+   SCREEN 3: MENTAL TRAINING — usage suggestions + guides
    ═══════════════════════════════════════════════════ */
-const sessions = [
-  { icon: Wind, label: "Morning Clarity Meditation", category: "Meditation", duration: 20, color: "#0891B2", bg: "linear-gradient(135deg, #059669 0%, #0891B2 100%)", level: "Beginner" },
-  { icon: Brain, label: "Deep Focus Block", category: "Focus", duration: 15, color: "#7C3AED", bg: "linear-gradient(135deg, #4C1D95 0%, #7C3AED 100%)", level: "Intermediate" },
-  { icon: Wind, label: "Box Breathing", category: "Breathe", duration: 10, color: "#0891B2", bg: "linear-gradient(135deg, #0891B2 0%, #06B6D4 100%)", level: "Beginner" },
-  { icon: Star, label: "Memory Palace", category: "Memory", duration: 25, color: "#F59E0B", bg: "linear-gradient(135deg, #B45309 0%, #F59E0B 100%)", level: "Advanced" },
+const sessions: Array<{
+  icon: React.ElementType;
+  label: string;
+  category: string;
+  duration: number;
+  color: string;
+  bg: string;
+  level: string;
+  description?: string;
+  guide?: string;
+}> = [
+  { icon: Wind, label: "Morning Clarity Meditation", category: "Meditation", duration: 20, color: "#0891B2", bg: "linear-gradient(135deg, #059669 0%, #0891B2 100%)", level: "Beginner", description: "Start the day with a clear mind. Guided body scan and breath awareness." },
+  { icon: Brain, label: "Deep Focus Block", category: "Focus", duration: 15, color: "#7C3AED", bg: "linear-gradient(135deg, #4C1D95 0%, #7C3AED 100%)", level: "Intermediate", description: "Single-tasking practice. Build sustained attention without switching." },
+  { icon: Wind, label: "Box Breathing", category: "Breathe", duration: 10, color: "#0891B2", bg: "linear-gradient(135deg, #0891B2 0%, #06B6D4 100%)", level: "Beginner", description: "Navy SEAL-style tactical breathing to calm the nervous system.", guide: "Inhale 4 sec → Hold 4 sec → Exhale 4 sec → Hold 4 sec. Repeat. One full cycle = 16 sec. Do 3–5 cycles for quick reset." },
+  { icon: Star, label: "Memory Palace", category: "Memory", duration: 25, color: "#F59E0B", bg: "linear-gradient(135deg, #B45309 0%, #F59E0B 100%)", level: "Advanced", description: "Visualize a familiar place and place items along a path. Walk the path to recall." },
 ];
 
 function MentalTraining() {
+  const { todayScreenMinutes } = useApp();
   const [activeSession, setActiveSession] = useState<(typeof sessions)[0] | null>(null);
   const [completedIds, setCompletedIds] = useState<string[]>([]);
   const [expanded, setExpanded] = useState(false);
+
+  const usageSuggestion = todayScreenMinutes > 120
+    ? "You've been on screen a lot today. A short 5–10 min breathing break can help reset focus."
+    : todayScreenMinutes > 60
+      ? "Nice balance so far. A quick Box Breathing session can boost clarity."
+      : "Light screen use today. Try a longer meditation to build the habit.";
 
   const handleClose = () => {
     if (activeSession) setCompletedIds((p) => [...p, activeSession.label]);
@@ -937,9 +1028,12 @@ function MentalTraining() {
       </div>
 
       <div className="flex flex-col flex-1 overflow-y-auto">
-        <div className="mx-3 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg" style={{ background: "#1E293B" }}>
-          <Sparkles size={11} style={{ color: "#A78BFA" }} />
-          <span className="text-[10px] font-medium" style={{ color: "#94A3B8" }}>Recommended for you</span>
+        <div className="mx-3 flex flex-col gap-1.5 px-2.5 py-2 rounded-lg" style={{ background: "#1E293B", border: "1px solid #7C3AED33" }}>
+          <div className="flex items-center gap-1.5">
+            <Sparkles size={11} style={{ color: "#A78BFA" }} />
+            <span className="text-[10px] font-medium" style={{ color: "#94A3B8" }}>Based on your usage</span>
+          </div>
+          <span className="text-[11px]" style={{ color: "#CBD5E1" }}>{usageSuggestion}</span>
         </div>
 
         <button
@@ -999,17 +1093,19 @@ function MentalTraining() {
                 <button
                   key={s.label}
                   onClick={() => setActiveSession(s)}
-                  className="flex items-center gap-3 rounded-xl p-2.5 transition-all active:scale-95"
+                  className="flex items-start gap-3 rounded-xl p-2.5 transition-all active:scale-95 text-left"
                   style={{ background: "#1E293B", border: done ? "1px solid #059669" : "1px solid #334155", cursor: "pointer" }}
                 >
                   <div className="flex items-center justify-center rounded-full shrink-0" style={{ width: 36, height: 36, background: s.bg }}>
                     <s.icon size={16} className="text-white" />
                   </div>
-                  <div className="flex flex-col items-start flex-1">
+                  <div className="flex flex-col items-start flex-1 min-w-0">
                     <span className="text-[11px] font-semibold" style={{ color: "#F1F5F9" }}>{s.label}</span>
                     <span className="text-[9px]" style={{ color: "#64748B" }}>{s.duration} min · {s.level}</span>
+                    {s.description && <span className="text-[9px] mt-0.5 leading-snug" style={{ color: "#94A3B8" }}>{s.description}</span>}
+                    {s.guide && <span className="text-[9px] mt-1 italic" style={{ color: "#A78BFA" }}>{s.guide}</span>}
                   </div>
-                  {done ? <CheckCircle size={14} style={{ color: "#34D399" }} /> : <Play size={12} style={{ color: "#7C3AED" }} />}
+                  {done ? <CheckCircle size={14} style={{ color: "#34D399" }} className="shrink-0" /> : <Play size={12} style={{ color: "#7C3AED" }} className="shrink-0" />}
                 </button>
               );
             })}
@@ -1048,7 +1144,7 @@ function MentalTraining() {
       </div>
 
       {activeSession && (
-        <SessionModal title={activeSession.label} duration={activeSession.duration * 60} onClose={handleClose} />
+        <SessionModal title={activeSession.label} duration={activeSession.duration * 60} onClose={handleClose} guide={activeSession.guide} />
       )}
     </div>
   );
@@ -1057,16 +1153,7 @@ function MentalTraining() {
 /* ═══════════════════════════════════════════════════
    SCREEN 4: REWARDS
    ═══════════════════════════════════════════════════ */
-function RewardsScreen() {
-  const [claimed, setClaimed] = useState<string[]>([]);
-
-  const badges = [
-    { id: "streak7", icon: Zap, label: "7-Day Streak", desc: "Logged in 7 days in a row", color: "#FBBF24", unlocked: true },
-    { id: "focus5", icon: Brain, label: "Focus Master", desc: "Completed 5 focus sessions", color: "#7C3AED", unlocked: true },
-    { id: "detox", icon: TrendingDown, label: "Digital Detox", desc: "Stayed under goal 3 days", color: "#34D399", unlocked: true },
-    { id: "legend", icon: Award, label: "Legend", desc: "Reach Gold tier", color: "#F59E0B", unlocked: false },
-  ];
-
+function RewardsScreen({ onNav }: { onNav: (s: Screen) => void }) {
   return (
     <div className="flex flex-col flex-1 overflow-y-auto" style={{ background: "#0F172A" }}>
       <div className="flex items-center justify-between px-4 shrink-0" style={{ height: 50 }}>
@@ -1121,8 +1208,73 @@ function RewardsScreen() {
         </div>
       ))}
 
+      <button
+        onClick={() => onNav("profile")}
+        className="mx-3 mt-3 flex items-center justify-center gap-2 rounded-xl py-2.5 text-[11px] font-semibold"
+        style={{ background: "#1E293B", border: "1px solid #334155", color: "#A78BFA", cursor: "pointer" }}
+      >
+        <Award size={14} /> View badges on Profile
+      </button>
+      <div className="pb-4" />
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   PROFILE — awards/badges moved here
+   ═══════════════════════════════════════════════════ */
+function ProfileScreen({ onNav }: { onNav: (s: Screen) => void }) {
+  const { userName, streakUnderLimitDays, setStreakUnderLimitDays } = useApp();
+  const [claimed, setClaimed] = useState<string[]>([]);
+
+  const badges = [
+    { id: "streak7", icon: Zap, label: "7-Day Under Limit", desc: "Stayed under goal 7 days in a row", color: "#FBBF24", unlocked: true },
+    { id: "focus5", icon: Brain, label: "Focus Master", desc: "Completed 5 focus sessions", color: "#7C3AED", unlocked: true },
+    { id: "detox", icon: TrendingDown, label: "Digital Detox", desc: "Stayed under goal 3 days", color: "#34D399", unlocked: true },
+    { id: "legend", icon: Award, label: "Legend", desc: "Reach Gold tier", color: "#F59E0B", unlocked: false },
+  ];
+
+  return (
+    <div className="flex flex-col flex-1 overflow-y-auto" style={{ background: "#0F172A" }}>
+      <div className="flex items-center justify-between px-4 shrink-0" style={{ height: 50 }}>
+        <span className="text-base font-bold" style={{ color: "#F1F5F9" }}>Profile</span>
+        <button
+          onClick={() => onNav("settings")}
+          className="flex items-center gap-1 text-[11px]"
+          style={{ color: "#7C3AED", background: "none", border: "none", cursor: "pointer" }}
+        >
+          <Settings size={14} /> Settings
+        </button>
+      </div>
+      <div className="mx-3 rounded-xl p-4 flex flex-col gap-3" style={{ background: "#1E293B" }}>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center rounded-full text-lg font-bold text-white" style={{ width: 56, height: 56, background: "#7C3AED" }}>
+            {userName.split(" ").map((n) => n[0]).join("")}
+          </div>
+          <div>
+            <div className="text-base font-bold" style={{ color: "#F1F5F9" }}>{userName}</div>
+            <div className="text-[10px]" style={{ color: "#94A3B8" }}>Bronze League · 342 XP</div>
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-[10px]" style={{ color: "#64748B" }}>Days under limit streak</span>
+          <span className="text-sm font-bold" style={{ color: "#F472B6" }}>{streakUnderLimitDays}</span>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setStreakUnderLimitDays(Math.max(0, streakUnderLimitDays - 1))}
+            className="flex-1 py-1.5 rounded-lg text-[10px] font-semibold"
+            style={{ background: "#334155", color: "#F1F5F9", border: "none", cursor: "pointer" }}
+          >−</button>
+          <button
+            onClick={() => setStreakUnderLimitDays(streakUnderLimitDays + 1)}
+            className="flex-1 py-1.5 rounded-lg text-[10px] font-semibold"
+            style={{ background: "#334155", color: "#F1F5F9", border: "none", cursor: "pointer" }}
+          >+</button>
+        </div>
+      </div>
       <div className="px-4 mt-3 mb-1 shrink-0">
-        <span className="text-xs font-bold" style={{ color: "#F1F5F9" }}>Badges</span>
+        <span className="text-xs font-bold" style={{ color: "#F1F5F9" }}>Awards</span>
       </div>
       <div className="grid grid-cols-2 gap-2 mx-3 mb-4">
         {badges.map(({ id, icon: Icon, label, desc, color, unlocked }) => {
@@ -1151,6 +1303,152 @@ function RewardsScreen() {
           );
         })}
       </div>
+      <div className="pb-4" />
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   SETTINGS — scheduling, limiting features, add apps
+   ═══════════════════════════════════════════════════ */
+function SettingsScreen({ onNav }: { onNav: (s: Screen) => void }) {
+  const {
+    scheduleRules,
+    setScheduleRules,
+    limitingFeatures,
+    setLimitingFeatures,
+    trackedApps,
+    addTrackedApp,
+    removeTrackedApp,
+  } = useApp();
+  const [showAddApps, setShowAddApps] = useState(false);
+
+  const availableToAdd = DETECTED_APPS.filter((a) => !trackedApps.some((t) => t.name === a.name));
+
+  return (
+    <div className="flex flex-col flex-1 overflow-y-auto" style={{ background: "#0F172A" }}>
+      <div className="flex items-center justify-between px-4 shrink-0" style={{ height: 50 }}>
+        <button onClick={() => onNav("home")} className="text-[11px] font-semibold" style={{ color: "#7C3AED", background: "none", border: "none", cursor: "pointer" }}>← Back</button>
+        <span className="text-base font-bold" style={{ color: "#F1F5F9" }}>Settings</span>
+        <div style={{ width: 48 }} />
+      </div>
+
+      <div className="px-4 mt-1 mb-1">
+        <span className="text-[10px] font-bold uppercase" style={{ color: "#64748B" }}>Limiting features</span>
+      </div>
+      <div className="mx-3 rounded-xl p-3 space-y-3" style={{ background: "#1E293B" }}>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px]" style={{ color: "#CBD5E1" }}>Greyscale after time</span>
+          <button
+            onClick={() => setLimitingFeatures({ greyscaleEnabled: !limitingFeatures.greyscaleEnabled })}
+            className="rounded-full w-10 h-5 transition-colors"
+            style={{ background: limitingFeatures.greyscaleEnabled ? "#7C3AED" : "#334155", border: "none", cursor: "pointer" }}
+          >
+            <div className="rounded-full w-4 h-4 bg-white transition-transform" style={{ transform: limitingFeatures.greyscaleEnabled ? "translateX(22px)" : "translateX(2px)", marginTop: 2 }} />
+          </button>
+        </div>
+        {limitingFeatures.greyscaleEnabled && (
+          <div className="flex items-center justify-between">
+            <span className="text-[10px]" style={{ color: "#94A3B8" }}>After (minutes)</span>
+            <input
+              type="number"
+              min={30}
+              max={480}
+              value={limitingFeatures.greyscaleAfterMinutes}
+              onChange={(e) => setLimitingFeatures({ greyscaleAfterMinutes: Number(e.target.value) || 120 })}
+              className="w-16 rounded px-2 py-1 text-[11px] text-right"
+              style={{ background: "#0F172A", color: "#F1F5F9", border: "1px solid #334155" }}
+            />
+          </div>
+        )}
+        <div className="flex items-center justify-between">
+          <span className="text-[11px]" style={{ color: "#CBD5E1" }}>Auto-block app after time</span>
+          <button
+            onClick={() => setLimitingFeatures({ autoBlockAppEnabled: !limitingFeatures.autoBlockAppEnabled })}
+            className="rounded-full w-10 h-5 transition-colors"
+            style={{ background: limitingFeatures.autoBlockAppEnabled ? "#7C3AED" : "#334155", border: "none", cursor: "pointer" }}
+          >
+            <div className="rounded-full w-4 h-4 bg-white transition-transform" style={{ transform: limitingFeatures.autoBlockAppEnabled ? "translateX(22px)" : "translateX(2px)", marginTop: 2 }} />
+          </button>
+        </div>
+        {limitingFeatures.autoBlockAppEnabled && (
+          <div className="flex items-center justify-between">
+            <span className="text-[10px]" style={{ color: "#94A3B8" }}>After (minutes)</span>
+            <input
+              type="number"
+              min={30}
+              max={480}
+              value={limitingFeatures.autoBlockAfterMinutes}
+              onChange={(e) => setLimitingFeatures({ autoBlockAfterMinutes: Number(e.target.value) || 180 })}
+              className="w-16 rounded px-2 py-1 text-[11px] text-right"
+              style={{ background: "#0F172A", color: "#F1F5F9", border: "1px solid #334155" }}
+            />
+          </div>
+        )}
+      </div>
+
+      <div className="px-4 mt-3 mb-1">
+        <span className="text-[10px] font-bold uppercase" style={{ color: "#64748B" }}>Scheduling — AI suggested limits</span>
+      </div>
+      <div className="mx-3 rounded-xl p-3 space-y-2" style={{ background: "#1E293B" }}>
+        {scheduleRules.map((r) => (
+          <div key={r.id} className="flex items-center justify-between py-1.5" style={{ borderBottom: "1px solid #334155" }}>
+            <div>
+              <span className="text-[11px] font-semibold" style={{ color: "#F1F5F9" }}>{r.label}</span>
+              {r.suggestedByAi && <span className="ml-1.5 text-[9px]" style={{ color: "#A78BFA" }}>AI</span>}
+            </div>
+            <span className="text-[11px] font-bold" style={{ color: "#7C3AED" }}>{Math.floor(r.limitMinutes / 60)}h {r.limitMinutes % 60}m</span>
+          </div>
+        ))}
+        <div className="text-[9px] mt-1" style={{ color: "#64748B" }}>Limits can vary by day or time. Edit in a future version.</div>
+      </div>
+
+      <div className="px-4 mt-3 mb-1 flex items-center justify-between">
+        <span className="text-[10px] font-bold uppercase" style={{ color: "#64748B" }}>Tracked apps</span>
+        <button
+          onClick={() => setShowAddApps(!showAddApps)}
+          className="text-[11px] font-semibold"
+          style={{ color: "#7C3AED", background: "none", border: "none", cursor: "pointer" }}
+        >
+          {showAddApps ? "Done" : "Add apps"}
+        </button>
+      </div>
+      {showAddApps ? (
+        <div className="mx-3 rounded-xl p-2 space-y-1 max-h-48 overflow-y-auto" style={{ background: "#1E293B" }}>
+          {availableToAdd.length === 0 ? (
+            <div className="text-[10px] py-2" style={{ color: "#64748B" }}>All available apps are already added.</div>
+          ) : (
+            availableToAdd.map((a) => {
+              const Icon = a.icon;
+              return (
+                <button
+                  key={a.name}
+                  onClick={() => addTrackedApp({ name: a.name, iconKey: a.iconKey, iconBg: a.iconBg, category: a.category, weeklyHours: a.weeklyHours, risk: a.risk })}
+                  className="flex items-center gap-2 w-full py-2 px-2 rounded-lg text-left transition-colors"
+                  style={{ background: "#0F172A", border: "none", cursor: "pointer" }}
+                >
+                  <div className="flex items-center justify-center rounded-lg shrink-0" style={{ width: 24, height: 24, background: a.iconBg }}>
+                    <Icon size={12} className="text-white" />
+                  </div>
+                  <span className="text-[11px] font-semibold flex-1" style={{ color: "#CBD5E1" }}>{a.name}</span>
+                  <Plus size={12} style={{ color: "#34D399" }} />
+                </button>
+              );
+            })
+          )}
+        </div>
+      ) : (
+        <div className="mx-3 rounded-xl p-2" style={{ background: "#1E293B" }}>
+          {trackedApps.map((a) => (
+            <div key={a.name} className="flex items-center justify-between py-1.5" style={{ borderBottom: "1px solid #334155" }}>
+              <span className="text-[11px]" style={{ color: "#CBD5E1" }}>{a.name}</span>
+              <button onClick={() => removeTrackedApp(a.name)} className="text-[10px] font-semibold" style={{ color: "#EF4444", background: "none", border: "none", cursor: "pointer" }}>Remove</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="pb-4" />
     </div>
   );
 }
@@ -1159,10 +1457,10 @@ function RewardsScreen() {
    PHONE SHELL — onboarding gated
    ═══════════════════════════════════════════════════ */
 function PhoneShell() {
-  const [onboarded, setOnboarded] = useState(false);
+  const { finishOnboarding, hasCompletedOnboarding } = useApp();
   const [screen, setScreen] = useState<Screen>("home");
 
-  if (!onboarded) {
+  if (!hasCompletedOnboarding) {
     return (
       <div
         className="relative rounded-[40px] overflow-hidden"
@@ -1176,7 +1474,22 @@ function PhoneShell() {
       >
         <div className="flex flex-col rounded-[30px] overflow-hidden" style={{ width: "100%", height: "100%" }}>
           <StatusBar />
-          <OnboardingFlow onFinish={() => setOnboarded(true)} />
+          <OnboardingFlow
+            onFinish={(opts) => {
+              const trackedApps: TrackedApp[] = opts.selectedApps.map((a) => ({
+                name: a.name,
+                iconKey: a.iconKey,
+                iconBg: a.iconBg,
+                category: a.category,
+                weeklyHours: a.weeklyHours,
+                risk: a.risk,
+                blocked: false,
+                todayMinutes: Math.round((a.weeklyHours / 7) * 60) + 10,
+                dailyLimitMinutes: 0,
+              }));
+              finishOnboarding({ dailyGoalHours: opts.dailyGoalHours, trackedApps });
+            }}
+          />
         </div>
       </div>
     );
@@ -1206,7 +1519,13 @@ function PhoneShell() {
             <MentalTraining />
           </div>
           <div style={{ display: screen === "rewards" ? "flex" : "none", flexDirection: "column", flex: 1, overflow: "hidden" }}>
-            <RewardsScreen />
+            <RewardsScreen onNav={setScreen} />
+          </div>
+          <div style={{ display: screen === "profile" ? "flex" : "none", flexDirection: "column", flex: 1, overflow: "hidden" }}>
+            <ProfileScreen onNav={setScreen} />
+          </div>
+          <div style={{ display: screen === "settings" ? "flex" : "none", flexDirection: "column", flex: 1, overflow: "hidden" }}>
+            <SettingsScreen onNav={setScreen} />
           </div>
         </div>
         <BottomNav active={screen} onNav={setScreen} />
@@ -1246,14 +1565,16 @@ function TopBar() {
    ═══════════════════════════════════════════════════ */
 export default function Page() {
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "#0d1117" }}>
-      <TopBar />
-      <div className="flex flex-1 items-center justify-center py-10">
-        <PhoneShell />
+    <AppProvider>
+      <div className="min-h-screen flex flex-col" style={{ background: "#0d1117" }}>
+        <TopBar />
+        <div className="flex flex-1 items-center justify-center py-10">
+          <PhoneShell />
+        </div>
+        <div className="flex items-center justify-center pb-5 text-[11px]" style={{ color: "#475569" }}>
+          Project Doomscrolling — Screen Time Management App
+        </div>
       </div>
-      <div className="flex items-center justify-center pb-5 text-[11px]" style={{ color: "#475569" }}>
-        Project Doomscrolling — Screen Time Management App
-      </div>
-    </div>
+    </AppProvider>
   );
 }
